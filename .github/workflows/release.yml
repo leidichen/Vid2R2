@@ -32,9 +32,9 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v2
       with:
-        files: dist/视频上传R2.exe
+        files: dist/Vid2R2-v*.exe
         name: Release ${{ github.ref_name }}
-        tag_name: ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
         draft: false
         prerelease: false
       env:

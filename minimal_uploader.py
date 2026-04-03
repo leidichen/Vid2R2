@@ -51,7 +51,13 @@ except ImportError:
 
 APP_NAME = "Vid2R2"
 APP_VERSION = "1.2.1"
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "vid2r2_settings.json")
+if getattr(sys, "frozen", False):
+    # 如果是打包后的 EXE，配置文件放在 EXE 同级目录，而不是临时解压目录
+    application_path = os.path.dirname(sys.executable)
+else:
+    application_path = os.path.dirname(__file__)
+
+SETTINGS_FILE = os.path.join(application_path, "vid2r2_settings.json")
 AUTOSTART_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 AUTOSTART_VALUE_NAME = APP_NAME
 
@@ -991,7 +997,8 @@ class MainWindow(QMainWindow):
         self.logo_path = os.path.join(
             os.path.dirname(__file__), "assets", "icons", "logo.png"
         )
-        self.allow_close = self.settings.get("close_to_tray", False)
+        # allow_close 仅在从托盘退出时设置为 True，平时点击关闭按钮应遵循设置
+        self.allow_close = False
         self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.resize(520, 620)
         self.setMinimumSize(460, 560)
@@ -1276,8 +1283,9 @@ class MainWindow(QMainWindow):
         self.settings = new_settings
         # Update tray auto‑start flag
         set_launch_on_startup(self.settings.get("launch_on_startup", False))
-        # If close‑to‑tray flag changed, adjust behavior when closing
-        self.allow_close = self.settings.get("close_to_tray", False)
+        # 刷新托盘图标等
+        if os.path.exists(self.logo_path):
+            self.tray_icon.setIcon(QIcon(self.logo_path))
 
     def set_status(self, text, state="idle"):
         self.status_label.setText(text)
