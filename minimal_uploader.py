@@ -10,9 +10,35 @@ import re
 import shutil
 from datetime import datetime
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QWidget, QProgressBar, QDialog, QFormLayout, QLineEdit, QFileDialog, QCheckBox, QMessageBox, QToolButton, QMenu, QSystemTrayIcon, QStyle
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QLabel,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QWidget,
+    QProgressBar,
+    QDialog,
+    QFormLayout,
+    QLineEdit,
+    QFileDialog,
+    QCheckBox,
+    QMessageBox,
+    QToolButton,
+    QMenu,
+    QSystemTrayIcon,
+    QStyle,
+)
 from PySide6.QtCore import Qt, Signal, QObject, QThread, QTimer
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPixmap, QIcon, QAction, QCloseEvent
+from PySide6.QtGui import (
+    QDragEnterEvent,
+    QDropEvent,
+    QPixmap,
+    QIcon,
+    QAction,
+    QCloseEvent,
+)
 
 import boto3
 
@@ -42,10 +68,13 @@ BITRATE_THRESHOLDS_MBPS = {
 HIGH_EFFICIENCY_CODECS = {"hevc", "h265", "vp9", "av1"}
 MODERN_CODECS = HIGH_EFFICIENCY_CODECS | {"h264", "avc"}
 
+
 def format_size(size_bytes):
-    if size_bytes <= 0: return "0 B"
+    if size_bytes <= 0:
+        return "0 B"
     size_name = ("B", "KB", "MB", "GB", "TB")
-    if size_bytes == 0: return "0 B"
+    if size_bytes == 0:
+        return "0 B"
     i = int(math.floor(math.log(size_bytes, 1024)))
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
@@ -108,7 +137,9 @@ def set_launch_on_startup(enabled):
     if winreg is None:
         return
     command = f'"{get_pythonw_executable()}" "{os.path.abspath(__file__)}"'
-    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_SET_VALUE)
+    key = winreg.OpenKey(
+        winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_SET_VALUE
+    )
     try:
         if enabled:
             winreg.SetValueEx(key, AUTOSTART_VALUE_NAME, 0, winreg.REG_SZ, command)
@@ -143,7 +174,11 @@ def validate_r2_settings(settings):
         "r2_endpoint_url": "Endpoint URL",
         "r2_custom_domain": "自定义域名",
     }
-    missing = [label for key, label in required_fields.items() if not settings.get(key, "").strip()]
+    missing = [
+        label
+        for key, label in required_fields.items()
+        if not settings.get(key, "").strip()
+    ]
     if missing:
         return False, "请先在设置中填写: " + "、".join(missing)
     return True, ""
@@ -166,7 +201,7 @@ def test_r2_connection(settings):
 
 def get_ffmpeg_exe():
     """获取 ffmpeg 可执行文件路径，支持 PyInstaller 打包"""
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # 尝试查找打包目录下的 ffmpeg (可能有版本名，如 ffmpeg-win-x86_64-v7.1.exe)
         for f in os.listdir(sys._MEIPASS):
             if f.startswith("ffmpeg") and f.endswith(".exe"):
@@ -176,7 +211,7 @@ def get_ffmpeg_exe():
 
 def get_ffprobe_exe():
     """获取 ffprobe 可执行文件路径，支持 PyInstaller 打包"""
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # 尝试查找打包目录下的 ffprobe
         ffprobe_bundled = os.path.join(sys._MEIPASS, "ffprobe.exe")
         if os.path.exists(ffprobe_bundled):
@@ -187,7 +222,7 @@ def get_ffprobe_exe():
     ffprobe_exe = os.path.join(os.path.dirname(ffmpeg_exe), "ffprobe.exe")
     if os.path.exists(ffprobe_exe):
         return ffprobe_exe
-    
+
     # 最后尝试系统路径
     system_ffprobe = shutil.which("ffprobe")
     if system_ffprobe:
@@ -212,13 +247,17 @@ def probe_video_info(file_path):
     if ffprobe_exe:
         cmd = [
             ffprobe_exe,
-            "-v", "error",
-            "-print_format", "json",
+            "-v",
+            "error",
+            "-print_format",
+            "json",
             "-show_format",
             "-show_streams",
             file_path,
         ]
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding="utf-8")
+        result = subprocess.run(
+            cmd, check=True, capture_output=True, text=True, encoding="utf-8"
+        )
         data = json.loads(result.stdout)
         streams = data.get("streams", [])
         format_info = data.get("format", {})
@@ -262,7 +301,9 @@ def probe_video_info(file_path):
     video_codec = ""
     audio_bitrate_bps = 0
 
-    video_match = re.search(r"Video:\s*([a-zA-Z0-9_]+).*?,\s*(\d{2,5})x(\d{2,5})", output)
+    video_match = re.search(
+        r"Video:\s*([a-zA-Z0-9_]+).*?,\s*(\d{2,5})x(\d{2,5})", output
+    )
     if video_match:
         video_codec = video_match.group(1).lower()
         width = int(video_match.group(2))
@@ -291,19 +332,34 @@ def analyze_compression_need(file_path):
     file_size = info["file_size"]
     duration = info["duration"]
     codec = info["video_codec"]
-    avg_bitrate_mbps = info["avg_bitrate_bps"] / 1_000_000 if info["avg_bitrate_bps"] else 0
+    avg_bitrate_mbps = (
+        info["avg_bitrate_bps"] / 1_000_000 if info["avg_bitrate_bps"] else 0
+    )
     bitrate_threshold = BITRATE_THRESHOLDS_MBPS[get_resolution_bucket(info["height"])]
 
     if file_size < MIN_COMPRESS_SIZE_BYTES:
-        return False, f"文件小于 {format_size(MIN_COMPRESS_SIZE_BYTES)}，直接上传原文件更稳妥", info
+        return (
+            False,
+            f"文件小于 {format_size(MIN_COMPRESS_SIZE_BYTES)}，直接上传原文件更稳妥",
+            info,
+        )
 
-    if duration and duration < SHORT_VIDEO_SECONDS and file_size < SHORT_VIDEO_SKIP_BYTES:
+    if (
+        duration
+        and duration < SHORT_VIDEO_SECONDS
+        and file_size < SHORT_VIDEO_SKIP_BYTES
+    ):
         return False, "短视频且体积不大，跳过压缩避免越压越大", info
 
-    if codec in MODERN_CODECS and avg_bitrate_mbps and avg_bitrate_mbps <= bitrate_threshold:
+    if (
+        codec in MODERN_CODECS
+        and avg_bitrate_mbps
+        and avg_bitrate_mbps <= bitrate_threshold
+    ):
         return False, f"{codec.upper()} 码率已较低，继续压缩大概率收益不高", info
 
     return True, "检测到仍可能有压缩空间，进入压缩流程", info
+
 
 class CompressWorker(QObject):
     finished = Signal(object)
@@ -341,20 +397,35 @@ class CompressWorker(QObject):
 
             self.status_update.emit("压缩中...")
             base_name, ext = os.path.splitext(os.path.basename(self.file_path))
-            output_dir = self.settings.get("compressed_output_dir", "").strip() or os.path.dirname(self.file_path)
+            output_dir = self.settings.get(
+                "compressed_output_dir", ""
+            ).strip() or os.path.dirname(self.file_path)
             os.makedirs(output_dir, exist_ok=True)
             compressed_path = os.path.join(output_dir, f"{base_name}_compressed{ext}")
 
             ffmpeg_exe = get_ffmpeg_exe()
             cmd = [
-                ffmpeg_exe, '-y', '-i', self.file_path,
-                '-vcodec', 'libx264', '-preset', 'fast', '-crf', '28',
-                '-c:a', 'aac', '-b:a', '128k',
-                compressed_path
+                ffmpeg_exe,
+                "-y",
+                "-i",
+                self.file_path,
+                "-vcodec",
+                "libx264",
+                "-preset",
+                "fast",
+                "-crf",
+                "28",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                compressed_path,
             ]
-            
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
+
+            subprocess.run(
+                cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+
             comp_size = os.path.getsize(compressed_path)
             saved_ratio = (orig_size - comp_size) / orig_size if orig_size > 0 else 0
 
@@ -379,7 +450,7 @@ class CompressWorker(QObject):
                 )
 
             self.finished.emit(result)
-            
+
         except subprocess.CalledProcessError as e:
             self.error.emit(f"视频压缩失败: {e}")
         except Exception as e:
@@ -405,14 +476,16 @@ class UploadWorker(QObject):
 
             md5_hash = hashlib.md5()
             file_size = os.path.getsize(self.upload_path)
-            
-            with open(self.upload_path, 'rb') as f:
+
+            with open(self.upload_path, "rb") as f:
                 while chunk := f.read(8192):
                     md5_hash.update(chunk)
             file_md5 = md5_hash.hexdigest()
 
             filename = os.path.basename(self.original_path)
-            object_key = build_upload_path(self.settings["path_template"], filename, file_md5)
+            object_key = build_upload_path(
+                self.settings["path_template"], filename, file_md5
+            )
 
             class ProgressPercentage(object):
                 def __init__(self, size, signal):
@@ -432,7 +505,7 @@ class UploadWorker(QObject):
                 self.upload_path,
                 self.settings["r2_bucket_name"],
                 object_key,
-                Callback=ProgressPercentage(file_size, self.progress)
+                Callback=ProgressPercentage(file_size, self.progress),
             )
 
             custom_url = f"{self.settings['r2_custom_domain'].rstrip('/')}/{object_key}"
@@ -735,7 +808,9 @@ class SettingsDialog(QDialog):
             QMessageBox.Warning: QStyle.SP_MessageBoxWarning,
             QMessageBox.Critical: QStyle.SP_MessageBoxCritical,
         }
-        standard_icon = self.style().standardIcon(icon_map.get(icon, QStyle.SP_MessageBoxInformation))
+        standard_icon = self.style().standardIcon(
+            icon_map.get(icon, QStyle.SP_MessageBoxInformation)
+        )
         icon_label.setPixmap(standard_icon.pixmap(32, 32))
         icon_label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
         content_layout.addWidget(icon_label, 0, Qt.AlignTop)
@@ -829,7 +904,8 @@ class SettingsDialog(QDialog):
             "r2_region": "auto",
             "r2_endpoint_url": self.endpoint_input.text().strip(),
             "r2_custom_domain": self.domain_input.text().strip(),
-            "path_template": self.path_template_input.text().strip() or "{year}/{month}/{md5}.{ext}",
+            "path_template": self.path_template_input.text().strip()
+            or "{year}/{month}/{md5}.{ext}",
             "compressed_output_dir": self.output_dir_input.text().strip(),
             "launch_on_startup": self.autostart_checkbox.isChecked(),
             "close_to_tray": self.tray_checkbox.isChecked(),
@@ -849,7 +925,9 @@ class SettingsDialog(QDialog):
         try:
             test_r2_connection(settings)
         except Exception as e:
-            self.show_message(QMessageBox.Critical, "通信失败", f"R2 通信检查失败:\n{e}")
+            self.show_message(
+                QMessageBox.Critical, "通信失败", f"R2 通信检查失败:\n{e}"
+            )
             return
         self.show_success_toast("连接成功！")
 
@@ -862,7 +940,12 @@ class SettingsDialog(QDialog):
 
     def handle_export(self):
         """Export current settings to a JSON file chosen by the user."""
-        file_path, _ = QFileDialog.getSaveFileName(self, "导出配置", "settings_export.json", "JSON Files (*.json);;All Files (*)")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出配置",
+            "settings_export.json",
+            "JSON Files (*.json);;All Files (*)",
+        )
         if file_path:
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
@@ -873,7 +956,9 @@ class SettingsDialog(QDialog):
 
     def handle_import(self):
         """Import settings from a JSON file and apply them to the UI."""
-        file_path, _ = QFileDialog.getOpenFileName(self, "导入配置", "", "JSON Files (*.json);;All Files (*)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "导入配置", "", "JSON Files (*.json);;All Files (*)"
+        )
         if file_path:
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -886,8 +971,14 @@ class SettingsDialog(QDialog):
                 self.domain_input.setText(imported.get("r2_custom_domain", ""))
                 self.path_template_input.setText(imported.get("path_template", ""))
                 self.output_dir_input.setText(imported.get("compressed_output_dir", ""))
-                self.autostart_checkbox.setChecked(imported.get("launch_on_startup", False))
+                self.autostart_checkbox.setChecked(
+                    imported.get("launch_on_startup", False)
+                )
                 self.tray_checkbox.setChecked(imported.get("close_to_tray", False))
+                # Save imported settings to file
+                save_settings(imported)
+                # Emit signal to update main window settings
+                self.settings_saved.emit(imported)
                 self.show_success_toast("配置已导入")
             except Exception as e:
                 self.show_message(QMessageBox.Critical, "导入失败", str(e))
@@ -897,7 +988,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = load_settings()
-        self.logo_path = os.path.join(os.path.dirname(__file__), "assets", "icons", "logo.png")
+        self.logo_path = os.path.join(
+            os.path.dirname(__file__), "assets", "icons", "logo.png"
+        )
         self.allow_close = False
         self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.resize(520, 620)
@@ -1068,7 +1161,9 @@ class MainWindow(QMainWindow):
         title_label.setObjectName("titleLabel")
         title_wrap_layout.addWidget(title_label)
 
-        subtitle_label = QLabel("拖入视频后自动压缩上传到 Cloudflare R2，成功后复制可用视频标签。")
+        subtitle_label = QLabel(
+            "拖入视频后自动压缩上传到 Cloudflare R2，成功后复制可用视频标签。"
+        )
         subtitle_label.setObjectName("subtitleLabel")
         subtitle_label.setWordWrap(True)
         title_wrap_layout.addWidget(subtitle_label)
@@ -1107,14 +1202,14 @@ class MainWindow(QMainWindow):
         self.btn_upload = QPushButton("确认上传")
         self.btn_upload.setObjectName("primaryButton")
         self.btn_upload.clicked.connect(self.start_upload)
-        
+
         self.btn_cancel = QPushButton("取消")
         self.btn_cancel.setObjectName("secondaryButton")
         self.btn_cancel.clicked.connect(self.cancel_upload)
-        
+
         self.btn_layout.addWidget(self.btn_upload)
         self.btn_layout.addWidget(self.btn_cancel)
-        
+
         # Wrap buttons in a widget to easily hide/show
         self.action_widget = QWidget()
         self.action_widget.setLayout(self.btn_layout)
@@ -1192,7 +1287,7 @@ class MainWindow(QMainWindow):
         self.status_label.update()
 
     def start_compression(self, file_path):
-        ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
+        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
         if ext not in config.ALLOWED_EXTENSIONS:
             self.set_status("文件格式不支持", "error")
             self.info_label.setText(f"暂不支持 .{ext} 格式，请拖入常见视频文件。")
@@ -1203,7 +1298,7 @@ class MainWindow(QMainWindow):
         self.current_upload_source = "原文件"
         file_name = os.path.basename(file_path)
         file_size = format_size(os.path.getsize(file_path))
-        
+
         self.drop_zone.setText(f"正在分析\n{file_name}")
         self.drop_zone.setDisabled(True)
         self.progress_bar.show()
@@ -1220,7 +1315,7 @@ class MainWindow(QMainWindow):
         self.worker.status_update.connect(self.update_status)
         self.worker.finished.connect(self.compression_finished)
         self.worker.error.connect(self.upload_error)
-        
+
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -1256,9 +1351,11 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         self.set_status("正在上传到云端", "idle")
         self.info_label.setText(f"正在上传{self.current_upload_source}...")
-        
+
         self.thread = QThread()
-        self.worker = UploadWorker(self.current_upload_path, self.current_original_path, self.settings.copy())
+        self.worker = UploadWorker(
+            self.current_upload_path, self.current_original_path, self.settings.copy()
+        )
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
@@ -1266,7 +1363,7 @@ class MainWindow(QMainWindow):
         self.worker.progress.connect(self.update_progress)
         self.worker.finished.connect(self.upload_finished)
         self.worker.error.connect(self.upload_error)
-        
+
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -1336,7 +1433,8 @@ class MainWindow(QMainWindow):
 
         event.accept()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
