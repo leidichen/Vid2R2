@@ -27,7 +27,7 @@ ENV/
 .env
 
 # PyInstaller
-*.spec
+# *.spec
 
 # Local settings and assets (Do not share keys)
 vid2r2_settings.json
