@@ -991,7 +991,7 @@ class MainWindow(QMainWindow):
         self.logo_path = os.path.join(
             os.path.dirname(__file__), "assets", "icons", "logo.png"
         )
-        self.allow_close = False
+        self.allow_close = self.settings.get("close_to_tray", False)
         self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
         self.resize(520, 620)
         self.setMinimumSize(460, 560)
