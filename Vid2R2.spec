@@ -3,29 +3,32 @@
 import sys
 import os
 import re
-import imageio_ffmpeg
 
 # 从源代码中提取版本号
 version = "1.2.1"
 try:
-    with open('minimal_uploader.py', 'r', encoding='utf-8') as f:
-        content = f.read()
-        match = re.search(r'APP_VERSION\s*=\s*(["\'])(.*?)\1', content)
-        if match:
-            version = match.group(2)
-except Exception:
-    pass
+    if os.path.exists('minimal_uploader.py'):
+        with open('minimal_uploader.py', 'r', encoding='utf-8') as f:
+            content = f.read()
+            match = re.search(r'APP_VERSION\s*=\s*(["\'])(.*?)\1', content)
+            if match:
+                version = match.group(2)
+except Exception as e:
+    print(f"Error extracting version: {e}")
 
-# 获取 FFmpeg/FFprobe 二进制文件路径
-ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-ffmpeg_dir = os.path.dirname(ffmpeg_exe)
-ffprobe_exe = os.path.join(ffmpeg_dir, "ffprobe.exe")
-
-binaries = [
-    (ffmpeg_exe, '.'),  # 打包到根目录
-]
-if os.path.exists(ffprobe_exe):
-    binaries.append((ffprobe_exe, '.'))
+# 尝试获取 FFmpeg/FFprobe 二进制文件路径 (可选，代码中有 fallback)
+binaries = []
+try:
+    import imageio_ffmpeg
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    if ffmpeg_exe and os.path.exists(ffmpeg_exe):
+        binaries.append((ffmpeg_exe, '.'))
+        ffmpeg_dir = os.path.dirname(ffmpeg_exe)
+        ffprobe_exe = os.path.join(ffmpeg_dir, "ffprobe.exe")
+        if os.path.exists(ffprobe_exe):
+            binaries.append((ffprobe_exe, '.'))
+except Exception as e:
+    print(f"Warning: Could not bundle FFmpeg/FFprobe binaries: {e}")
 
 a = Analysis(
     ['minimal_uploader.py'],
@@ -61,6 +64,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='version_info.txt',
-    icon=['assets\\icons\\app_icon.ico'],
+    version='version_info.txt' if os.path.exists('version_info.txt') else None,
+    icon=['assets\\icons\\app_icon.ico'] if os.path.exists('assets\\icons\\app_icon.ico') else None,
 )
