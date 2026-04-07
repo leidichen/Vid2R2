@@ -5,7 +5,7 @@ import os
 import re
 
 # 从源代码中提取版本号
-version = "1.2.1"
+version = "1.2.3"
 try:
     if os.path.exists('minimal_uploader.py'):
         with open('minimal_uploader.py', 'r', encoding='utf-8') as f:
