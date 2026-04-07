@@ -31,7 +31,6 @@ ENV/
 
 # Local settings and assets (Do not share keys)
 vid2r2_settings.json
-config.py
 .env
 
 # IDEs
