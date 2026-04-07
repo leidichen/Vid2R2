@@ -32,10 +32,10 @@ except Exception as e:
 
 a = Analysis(
     ['minimal_uploader.py'],
-    pathex=[],
+    pathex=['.'],
     binaries=binaries,
     datas=[('assets', 'assets')],
-    hiddenimports=[],
+    hiddenimports=['config'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
