@@ -50,7 +50,7 @@ except ImportError:
     winreg = None
 
 APP_NAME = "Vid2R2"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.4"
 if getattr(sys, "frozen", False):
     # 如果是打包后的 EXE，配置文件放在 EXE 同级目录，而不是临时解压目录
     application_path = os.path.dirname(sys.executable)
